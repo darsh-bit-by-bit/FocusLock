@@ -1,8 +1,24 @@
-// Day 4 MVP: YouTube Smart Mode
-// Shorts and recommendations are disabled at the content level.
-// Navigation elements may remain visible but are non-functional by design.
+const BLOCK_MESSAGE = `
+  <div style="
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:100vh;
+    font-family:sans-serif;
+    font-size:20px;
+    background:#000;
+    color:#fff;
+    text-align:center;
+    padding:40px;
+  ">
+    YouTube Shorts are disabled during FocusLock.
+  </div>
+`;
 
-function isLockActive(callback) {
+let observerStarted = false;
+let isLocked = false;
+
+function checkLockStatus(callback) {
     chrome.storage.local.get(
         ["lockEndDate", "overrideUntil"],
         (data) => {
@@ -10,80 +26,119 @@ function isLockActive(callback) {
             const lockEnd = data.lockEndDate;
             const overrideUntil = data.overrideUntil;
 
-            const active =
-                lockEnd &&
-                now < lockEnd &&
+            isLocked =
+                lockEnd && now < lockEnd &&
                 (!overrideUntil || now > overrideUntil);
 
-            callback(active);
+            if (callback) callback(isLocked);
         }
     );
 }
 
-function cleanHomePage() {
-    document
-        .querySelectorAll("ytd-rich-item-renderer, ytd-rich-grid-row")
-        .forEach(el => el.remove());
+function isShortsPage() {
+    return window.location.pathname.startsWith("/shorts");
 }
 
-function cleanWatchPage() {
-    const related = document.getElementById("related");
-    if (related) related.remove();
-
-    const comments = document.getElementById("comments");
-    if (comments) comments.remove();
-}
-
-function disableShortsNavigation() {
-    document
-        .querySelectorAll('a[href^="/shorts"]')
-        .forEach(el => el.remove());
-
-    if (location.pathname.startsWith("/shorts")) {
-        document.body.innerHTML = "";
+function blockShortsPage() {
+    if (isShortsPage()) {
+        document.documentElement.innerHTML = BLOCK_MESSAGE;
     }
 }
 
-function enforceMediaPolicy() {
-    const isWatchPage = location.pathname.startsWith("/watch");
+function removeShortsElements() {
+    const selectors = [
+        "ytd-reel-shelf-renderer",
+        "ytd-rich-section-renderer",
+        "ytd-reel-video-renderer",
+        "a[href^='/shorts']",
+        "ytd-guide-entry-renderer a[href='/shorts']"
+    ];
 
-    document.querySelectorAll("video, audio").forEach(media => {
-        if (!isWatchPage) {
-            media.pause();
-            media.muted = true;
-            media.autoplay = false;
-        }
+    selectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => el.remove());
     });
 }
 
+function removeHomePageElements() {
+    const homeSelectors = [
+        "ytd-browse[page-subtype='home']",
+        "ytd-two-column-browse-results-renderer",
+        "#contents.ytd-rich-grid-renderer"
+    ];
 
-function applyRules() {
-    const path = location.pathname;
-
-    if (path === "/") {
-        cleanHomePage();
-    }
-
-    if (path.startsWith("/watch")) {
-        cleanWatchPage();
-    }
-
-    disableShortsNavigation();
-
-    enforceMediaPolicy();
+    homeSelectors.forEach(selector => {
+        document.querySelectorAll(selector).forEach(el => {
+            if (window.location.pathname === "/" || window.location.pathname === "/feed/subscriptions") {
+                el.style.display = "none";
+            }
+        });
+    });
 }
 
-isLockActive((active) => {
-    if (!active) return;
+function stopAllVideos() {
+    document.querySelectorAll("video").forEach(video => {
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+    });
+}
 
-    applyRules();
+function enforceYouTubeRestrictions() {
+    if (!isLocked) return;
+
+    blockShortsPage();
+    removeShortsElements();
+    removeHomePageElements();
+
+    if (window.location.pathname === "/" || isShortsPage()) {
+        stopAllVideos();
+    }
+}
+
+function startObserver() {
+    if (observerStarted) return;
+    observerStarted = true;
 
     const observer = new MutationObserver(() => {
-        applyRules();
+        if (isLocked) {
+            enforceYouTubeRestrictions();
+        }
     });
 
     observer.observe(document.body, {
         childList: true,
         subtree: true
     });
+}
+
+checkLockStatus((locked) => {
+    if (locked) {
+        enforceYouTubeRestrictions();
+        startObserver();
+    }
+});
+
+let lastUrl = location.href;
+setInterval(() => {
+    if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        checkLockStatus((locked) => {
+            if (locked) {
+                enforceYouTubeRestrictions();
+            }
+        });
+    }
+}, 500);
+
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && (changes.lockEndDate || changes.overrideUntil)) {
+        checkLockStatus((locked) => {
+            if (locked) {
+                enforceYouTubeRestrictions();
+                if (!observerStarted) {
+                    startObserver();
+                }
+            }
+        });
+    }
 });
