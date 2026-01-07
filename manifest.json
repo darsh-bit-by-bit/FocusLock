@@ -7,21 +7,31 @@
         "storage"
     ],
     "content_scripts": [
-  {
-    "matches": [
-      "*://*.instagram.com/*",
-      "*://*.reddit.com/*",
-      "*://*.twitter.com/*",
-      "*://*.x.com/*",
-      "*://*.facebook.com/*",
-      "*://*.tiktok.com/*",
-      "*://*.threads.net/*"
+        {
+            "matches": [
+                "*://*.instagram.com/*",
+                "*://*.reddit.com/*",
+                "*://*.twitter.com/*",
+                "*://*.x.com/*",
+                "*://*.facebook.com/*",
+                "*://*.tiktok.com/*",
+                "*://*.threads.net/*"
+            ],
+            "js": [
+                "block.js"
+            ],
+            "run_at": "document_start"
+        },
+        {
+            "matches": [
+                "*://*.youtube.com/*"
+            ],
+            "js": [
+                "youtube.js"
+            ],
+            "run_at": "document_end"
+        }
     ],
-    "js": ["block.js"],
-    "run_at": "document_start"
-  }
-]
-,
     "action": {
         "default_popup": "popup.html"
     }
