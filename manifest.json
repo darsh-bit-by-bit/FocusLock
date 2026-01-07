@@ -1,38 +1,38 @@
 {
-    "manifest_version": 3,
-    "name": "FocusLock",
-    "version": "1.0",
-    "description": "Commitment-based distraction blocker.",
-    "permissions": [
-        "storage"
-    ],
-    "content_scripts": [
-        {
-            "matches": [
-                "*://*.instagram.com/*",
-                "*://*.reddit.com/*",
-                "*://*.twitter.com/*",
-                "*://*.x.com/*",
-                "*://*.facebook.com/*",
-                "*://*.tiktok.com/*",
-                "*://*.threads.net/*"
-            ],
-            "js": [
-                "block.js"
-            ],
-            "run_at": "document_start"
-        },
-        {
-            "matches": [
-                "*://*.youtube.com/*"
-            ],
-            "js": [
-                "youtube.js"
-            ],
-            "run_at": "document_end"
-        }
-    ],
-    "action": {
-        "default_popup": "popup.html"
+  "manifest_version": 3,
+  "name": "FocusLock",
+  "version": "1.0",
+  "description": "Commitment-based distraction blocker.",
+  "permissions": [
+    "storage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.instagram.com/*",
+        "*://*.reddit.com/*",
+        "*://*.twitter.com/*",
+        "*://*.x.com/*",
+        "*://*.facebook.com/*",
+        "*://*.tiktok.com/*",
+        "*://*.threads.net/*"
+      ],
+      "js": [
+        "block.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*"
+      ],
+      "js": [
+        "youtube.js"
+      ],
+      "run_at": "document_start"
     }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
 }
